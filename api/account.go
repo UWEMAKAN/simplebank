@@ -135,7 +135,7 @@ type deleteAccountRequest struct {
 }
 
 type deleteAccountResponse struct {
-	ID int64
+	ID      int64
 	Message string
 }
 
@@ -159,7 +159,7 @@ func (server *Server) deleteAccount(ctx *gin.Context) {
 	}
 
 	res := deleteAccountResponse{
-		ID: req.ID,
+		ID:      req.ID,
 		Message: "account deleted",
 	}
 

@@ -5,22 +5,22 @@ import (
 	"database/sql"
 	"testing"
 	"time"
-	
+
 	"github.com/stretchr/testify/require"
 	"github.com/uwemakan/simplebank/util"
 )
 
 func createRandomAccount(t *testing.T) Account {
 	arg := CreateAccountParams{
-		Owner: util.RandomOwner(),
-		Balance: util.RandomMoney(),
+		Owner:    util.RandomOwner(),
+		Balance:  util.RandomMoney(),
 		Currency: util.RandomCurrency(),
 	}
 
 	account, err := testQueries.CreateAccount(context.Background(), arg)
 	require.NoError(t, err)
 	require.NotEmpty(t, account)
-	
+
 	require.Equal(t, arg.Owner, account.Owner)
 	require.Equal(t, arg.Balance, account.Balance)
 	require.Equal(t, arg.Currency, account.Currency)
@@ -51,9 +51,9 @@ func TestGetAccount(t *testing.T) {
 
 func TestUpdateAccount(t *testing.T) {
 	account1 := createRandomAccount(t)
-	
+
 	arg := UpdateAccountParams{
-		ID: account1.ID,
+		ID:      account1.ID,
 		Balance: util.RandomMoney(),
 	}
 
@@ -87,7 +87,7 @@ func TestListAccounts(t *testing.T) {
 
 	arg := ListAccountsParams{
 		Limit: 5,
-		ID: 0,
+		ID:    0,
 	}
 
 	accounts, err := testQueries.ListAccounts(context.Background(), arg)

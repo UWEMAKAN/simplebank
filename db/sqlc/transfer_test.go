@@ -14,8 +14,8 @@ func createRandomTransfer(t *testing.T) Transfer {
 
 	arg := CreateTransferParams{
 		FromAccountID: fromAccount.ID,
-		ToAccountID: toAccount.ID,
-		Amount: util.RandomMoney(),
+		ToAccountID:   toAccount.ID,
+		Amount:        util.RandomMoney(),
 	}
 
 	a, err := testQueries.CreateTransfer(context.Background(), arg)
@@ -51,7 +51,7 @@ func TestListTransfers(t *testing.T) {
 	}
 
 	arg := ListTransfersParams{
-		ID: 0,
+		ID:    0,
 		Limit: 5,
 	}
 
@@ -69,8 +69,8 @@ func createRandomTransfersFromOneAccount(t *testing.T, fromAccountId int64, n in
 
 		arg := CreateTransferParams{
 			FromAccountID: fromAccountId,
-			ToAccountID: toAccount.ID,
-			Amount: util.RandomMoney(),
+			ToAccountID:   toAccount.ID,
+			Amount:        util.RandomMoney(),
 		}
 
 		testQueries.CreateTransfer(context.Background(), arg)
@@ -82,9 +82,9 @@ func TestListTransfersByFromAccount(t *testing.T) {
 	createRandomTransfersFromOneAccount(t, fromAccount.ID, 10)
 
 	arg := ListTransfersByFromAccountParams{
-		ID: 0,
+		ID:            0,
 		FromAccountID: fromAccount.ID,
-		Limit: 5,
+		Limit:         5,
 	}
 
 	ts, err := testQueries.ListTransfersByFromAccount(context.Background(), arg)
@@ -100,8 +100,8 @@ func createRandomTransfersFromAndToTwoAccounts(t *testing.T, fromAccountId int64
 	for i := 0; i < n; i++ {
 		arg := CreateTransferParams{
 			FromAccountID: fromAccountId,
-			ToAccountID: toAccountId,
-			Amount: util.RandomMoney(),
+			ToAccountID:   toAccountId,
+			Amount:        util.RandomMoney(),
 		}
 
 		testQueries.CreateTransfer(context.Background(), arg)
@@ -114,10 +114,10 @@ func TestListTransfersByFromAndToAccount(t *testing.T) {
 	createRandomTransfersFromAndToTwoAccounts(t, fromAccount.ID, toAccount.ID, 10)
 
 	arg := ListTransfersByFromAndToAccountParams{
-		ID: 0,
+		ID:            0,
 		FromAccountID: fromAccount.ID,
-		ToAccountID: toAccount.ID,
-		Limit: 5,
+		ToAccountID:   toAccount.ID,
+		Limit:         5,
 	}
 
 	ts, err := testQueries.ListTransfersByFromAndToAccount(context.Background(), arg)
@@ -136,8 +136,8 @@ func createRandomTransfersToOneAccount(t *testing.T, toAccountId int64, n int) {
 	for i := 0; i < n; i++ {
 		arg := CreateTransferParams{
 			FromAccountID: fromAccount.ID,
-			ToAccountID: toAccountId,
-			Amount: util.RandomMoney(),
+			ToAccountID:   toAccountId,
+			Amount:        util.RandomMoney(),
 		}
 
 		testQueries.CreateTransfer(context.Background(), arg)
@@ -149,9 +149,9 @@ func TestListTransfersByToAccount(t *testing.T) {
 	createRandomTransfersToOneAccount(t, toAccount.ID, 10)
 
 	arg := ListTransfersByToAccountParams{
-		ID: 0,
+		ID:          0,
 		ToAccountID: toAccount.ID,
-		Limit: 5,
+		Limit:       5,
 	}
 
 	ts, err := testQueries.ListTransfersByToAccount(context.Background(), arg)

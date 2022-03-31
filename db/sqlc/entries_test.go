@@ -13,7 +13,7 @@ func createRandomEntry(t *testing.T) Entry {
 	a := createRandomAccount(t)
 	arg := CreateEntryParams{
 		AccountID: a.ID,
-		Amount: util.RandomMoney(),
+		Amount:    util.RandomMoney(),
 	}
 
 	e, err := testQueries.CreateEntry(context.Background(), arg)
@@ -54,13 +54,13 @@ func TestListEntries(t *testing.T) {
 	}
 
 	arg := ListEntriesParams{
-		ID: 0,
+		ID:    0,
 		Limit: 5,
 	}
 	es, err := testQueries.ListEntries(context.Background(), arg)
 	require.NoError(t, err)
 	require.Len(t, es, 5)
-	
+
 	for _, e := range es {
 		require.NotEmpty(t, e)
 	}
@@ -70,7 +70,7 @@ func createAccountEntries(t *testing.T, accountId int64, n int) {
 	for i := 0; i < n; i++ {
 		arg := CreateEntryParams{
 			AccountID: accountId,
-			Amount: util.RandomMoney(),
+			Amount:    util.RandomMoney(),
 		}
 
 		e, err := testQueries.CreateEntry(context.Background(), arg)
@@ -88,9 +88,9 @@ func TestListEntriesByAccountId(t *testing.T) {
 	createAccountEntries(t, account.ID, 10)
 
 	arg := ListEntriesByAccountIdParams{
-		ID: 0,
+		ID:        0,
 		AccountID: account.ID,
-		Limit: 5,
+		Limit:     5,
 	}
 
 	es, err := testQueries.ListEntriesByAccountId(context.Background(), arg)
