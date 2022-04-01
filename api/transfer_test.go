@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -285,4 +286,312 @@ func randomEntry(accountID int64, amount float64) db.Entry {
 		AccountID: accountID,
 		Amount:    amount,
 	}
+}
+
+func TestGetTransferAPI(t *testing.T) {
+	transfer := randomTransfer(1, 2, 100.45)
+
+	testCases := []struct {
+		name          string
+		transferID    int64
+		fromAccountID int64
+		toAccountID   int64
+		amount        float64
+		buildStubs    func(store *mockdb.MockStore)
+		checkResponse func(t *testing.T, recorder *httptest.ResponseRecorder)
+	}{
+		{
+			name:          "OK",
+			transferID:    transfer.ID,
+			fromAccountID: transfer.FromAccountID,
+			toAccountID:   transfer.ToAccountID,
+			amount:        transfer.Amount,
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetTransfer(gomock.Any(), gomock.Eq(transfer.ID)).
+					Times(1).
+					Return(transfer, nil)
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, recorder.Code)
+				requireBodyMatchTransfer(t, recorder.Body, transfer)
+			},
+		},
+		{
+			name:          "BadRequest",
+			transferID:    0,
+			fromAccountID: transfer.FromAccountID,
+			toAccountID:   transfer.ToAccountID,
+			amount:        transfer.Amount,
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetTransfer(gomock.Any(), gomock.Eq(transfer.ID)).
+					Times(0)
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusBadRequest, recorder.Code)
+			},
+		},
+		{
+			name:          "NotFound",
+			transferID:    transfer.ID,
+			fromAccountID: transfer.FromAccountID,
+			toAccountID:   transfer.ToAccountID,
+			amount:        transfer.Amount,
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetTransfer(gomock.Any(), gomock.Eq(transfer.ID)).
+					Times(1).
+					Return(db.Transfer{}, sql.ErrNoRows)
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusNotFound, recorder.Code)
+			},
+		},
+		{
+			name:          "InternalServerError",
+			transferID:    transfer.ID,
+			fromAccountID: transfer.FromAccountID,
+			toAccountID:   transfer.ToAccountID,
+			amount:        transfer.Amount,
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetTransfer(gomock.Any(), gomock.Eq(transfer.ID)).
+					Times(1).
+					Return(db.Transfer{}, sql.ErrConnDone)
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusInternalServerError, recorder.Code)
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			store := mockdb.NewMockStore(ctrl)
+			tc.buildStubs(store)
+
+			// start test server and send request
+			server := NewServer(store)
+			recorder := httptest.NewRecorder()
+
+			url := fmt.Sprintf("/transfers/%d", tc.transferID)
+
+			request, err := http.NewRequest(http.MethodGet, url, nil)
+			require.NoError(t, err)
+
+			server.router.ServeHTTP(recorder, request)
+			tc.checkResponse(t, recorder)
+		})
+	}
+}
+
+func requireBodyMatchTransfer(t *testing.T, body *bytes.Buffer, transfer db.Transfer) {
+	data, err := ioutil.ReadAll(body)
+	require.NoError(t, err)
+
+	var gotTransfer db.Transfer
+	err = json.Unmarshal(data, &gotTransfer)
+	require.NoError(t, err)
+	require.Equal(t, transfer, gotTransfer)
+}
+
+func TestListTransfersApI(t *testing.T) {
+	n := 20
+	transfers := make([]db.Transfer, n)
+
+	fromAccountID := util.RandomInt(1, 100)
+	toAccountID := util.RandomInt(1, 100)
+	amount := util.RandomMoney()
+	pageID := 0
+	pageSize := 10
+
+	for i := 0; i < n; i++ {
+		transfers[i] = randomTransfer(fromAccountID, toAccountID, amount)
+	}
+
+	testCases := []struct {
+		name          string
+		pageID        int32
+		pageSize      int32
+		fromAccountID int64
+		toAccountID   int64
+		buildStubs    func(store *mockdb.MockStore)
+		checkResponse func(t *testing.T, recorder *httptest.ResponseRecorder)
+	}{
+		{
+			name:          "ListTransfersOK",
+			pageID:        int32(pageID),
+			pageSize:      int32(pageSize),
+			fromAccountID: 0,
+			toAccountID:   0,
+			buildStubs:    func(store *mockdb.MockStore) {
+				store.EXPECT().ListTransfers(gomock.Any(), gomock.Eq(db.ListTransfersParams{
+					ID: int64(pageID),
+					Limit: int32(pageSize),
+				})).
+				Times(1).
+				Return(transfers[:pageSize], nil)
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, recorder.Code)
+				requireBodyMatchTransferSlice(t, recorder.Body, transfers[:pageSize])
+			},
+		},
+		{
+			name:          "ListTransfersByFromAccountOK",
+			pageID:        int32(pageID),
+			pageSize:      int32(pageSize),
+			fromAccountID: fromAccountID,
+			toAccountID:   0,
+			buildStubs:    func(store *mockdb.MockStore) {
+				store.EXPECT().ListTransfersByFromAccount(gomock.Any(), gomock.Eq(db.ListTransfersByFromAccountParams{
+					ID: int64(pageID),
+					Limit: int32(pageSize),
+					FromAccountID: fromAccountID,
+				})).
+				Times(1).
+				Return(transfers[:pageSize], nil)
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, recorder.Code)
+				requireBodyMatchTransferSlice(t, recorder.Body, transfers[:pageSize])
+			},
+		},
+		{
+			name:          "ListTransfersByToAccountOK",
+			pageID:        int32(pageID),
+			pageSize:      int32(pageSize),
+			fromAccountID: 0,
+			toAccountID:   toAccountID,
+			buildStubs:    func(store *mockdb.MockStore) {
+				store.EXPECT().ListTransfersByToAccount(gomock.Any(), gomock.Eq(db.ListTransfersByToAccountParams{
+					ID: int64(pageID),
+					Limit: int32(pageSize),
+					ToAccountID: toAccountID,
+				})).
+				Times(1).
+				Return(transfers[:pageSize], nil)
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, recorder.Code)
+				requireBodyMatchTransferSlice(t, recorder.Body, transfers[:pageSize])
+			},
+		},
+		{
+			name:          "ListTransfersByFromAndToAccountOK",
+			pageID:        int32(pageID),
+			pageSize:      int32(pageSize),
+			fromAccountID: fromAccountID,
+			toAccountID:   toAccountID,
+			buildStubs:    func(store *mockdb.MockStore) {
+				store.EXPECT().ListTransfersByFromAndToAccount(gomock.Any(), gomock.Eq(db.ListTransfersByFromAndToAccountParams{
+					ID: int64(pageID),
+					Limit: int32(pageSize),
+					FromAccountID: fromAccountID,
+					ToAccountID: toAccountID,
+				})).
+				Times(1).
+				Return(transfers[:pageSize], nil)
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, recorder.Code)
+				requireBodyMatchTransferSlice(t, recorder.Body, transfers[:pageSize])
+			},
+		},
+		{
+			name:          "BadRequest",
+			pageID:        int32(pageID),
+			pageSize:      0,
+			fromAccountID: fromAccountID,
+			toAccountID:   toAccountID,
+			buildStubs:    func(store *mockdb.MockStore) {
+				store.EXPECT().ListTransfersByFromAndToAccount(gomock.Any(), gomock.Eq(db.ListTransfersByFromAndToAccountParams{
+					ID: int64(pageID),
+					Limit: int32(pageSize),
+					FromAccountID: fromAccountID,
+					ToAccountID: toAccountID,
+				})).
+				Times(0)
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusBadRequest, recorder.Code)
+			},
+		},
+		{
+			name:          "NotFound",
+			pageID:        int32(pageID),
+			pageSize:      int32(pageSize),
+			fromAccountID: fromAccountID,
+			toAccountID:   toAccountID,
+			buildStubs:    func(store *mockdb.MockStore) {
+				store.EXPECT().ListTransfersByFromAndToAccount(gomock.Any(), gomock.Eq(db.ListTransfersByFromAndToAccountParams{
+					ID: int64(pageID),
+					Limit: int32(pageSize),
+					FromAccountID: fromAccountID,
+					ToAccountID: toAccountID,
+				})).
+				Times(1).
+				Return([]db.Transfer{}, sql.ErrNoRows)
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusNotFound, recorder.Code)
+			},
+		},
+		{
+			name:          "BadRequest",
+			pageID:        int32(pageID),
+			pageSize:      int32(pageSize),
+			fromAccountID: fromAccountID,
+			toAccountID:   toAccountID,
+			buildStubs:    func(store *mockdb.MockStore) {
+				store.EXPECT().ListTransfersByFromAndToAccount(gomock.Any(), gomock.Eq(db.ListTransfersByFromAndToAccountParams{
+					ID: int64(pageID),
+					Limit: int32(pageSize),
+					FromAccountID: fromAccountID,
+					ToAccountID: toAccountID,
+				})).
+				Times(1).
+				Return([]db.Transfer{}, sql.ErrConnDone)
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusInternalServerError, recorder.Code)
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			store := mockdb.NewMockStore(ctrl)
+			tc.buildStubs(store)
+
+			// start test server and send request
+			server := NewServer(store)
+			recorder := httptest.NewRecorder()
+
+			url := fmt.Sprintf("/transfers?pageId=%d&pageSize=%d&fromAccountId=%d&toAccountId=%d", tc.pageID, tc.pageSize, tc.fromAccountID, tc.toAccountID)
+
+			request, err := http.NewRequest(http.MethodGet, url, nil)
+			require.NoError(t, err)
+
+			server.router.ServeHTTP(recorder, request)
+			tc.checkResponse(t, recorder)
+		})
+	}
+}
+
+func requireBodyMatchTransferSlice(t *testing.T, body *bytes.Buffer, transfers []db.Transfer) {
+	data, err := ioutil.ReadAll(body)
+	require.NoError(t, err)
+
+	var gotTransfers []db.Transfer
+	err = json.Unmarshal(data, &gotTransfers)
+	require.NoError(t, err)
+	require.Equal(t, transfers, gotTransfers)
 }

@@ -66,3 +66,90 @@ func (server *Server) validAccount(ctx *gin.Context, accountID int64, currency s
 
 	return true
 }
+
+type getTransferRequest struct {
+	ID int64 `uri:"id" binding:"required,min=1"`
+}
+
+func (server *Server) getTransfer(ctx *gin.Context) {
+	var req getTransferRequest
+
+	if err := ctx.BindUri(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	result, err := server.store.GetTransfer(ctx, req.ID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			ctx.JSON(http.StatusNotFound, errorResponse(err))
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, result)
+}
+
+type listTransfersRequest struct {
+	PageID        int32 `form:"pageId" binding:"omitempty,min=0"`
+	PageSize      int32 `form:"pageSize" binding:"required,min=5,max=10"`
+	FromAccountID int64 `form:"fromAccountId" binding:"omitempty,min=1"`
+	ToAccountID   int64 `form:"toAccountId" binding:"omitempty,min=1"`
+}
+
+func (server *Server) listTransfers(ctx *gin.Context) {
+	var req listTransfersRequest
+
+	if err := ctx.ShouldBindQuery(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	result, err := getAllTransfers(ctx, server, req)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			ctx.JSON(http.StatusNotFound, errorResponse(err))
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, result)
+}
+
+func getAllTransfers(ctx *gin.Context, server *Server, req listTransfersRequest) (result []db.Transfer, err error) {
+	if req.FromAccountID != 0 && req.ToAccountID == 0 {
+		arg := db.ListTransfersByFromAccountParams{
+			ID:            int64(req.PageID),
+			Limit:         req.PageSize,
+			FromAccountID: req.FromAccountID,
+		}
+		result, err = server.store.ListTransfersByFromAccount(ctx, arg)
+	} else if req.FromAccountID == 0 && req.ToAccountID != 0 {
+		arg := db.ListTransfersByToAccountParams{
+			ID:          int64(req.PageID),
+			Limit:       req.PageSize,
+			ToAccountID: req.ToAccountID,
+		}
+		result, err = server.store.ListTransfersByToAccount(ctx, arg)
+	} else if req.FromAccountID != 0 && req.ToAccountID != 0 {
+		arg := db.ListTransfersByFromAndToAccountParams{
+			ID:            int64(req.PageID),
+			Limit:         req.PageSize,
+			FromAccountID: req.FromAccountID,
+			ToAccountID:   req.ToAccountID,
+		}
+		result, err = server.store.ListTransfersByFromAndToAccount(ctx, arg)
+	} else {
+		arg := db.ListTransfersParams{
+			ID:    int64(req.PageID),
+			Limit: req.PageSize,
+		}
+		result, err = server.store.ListTransfers(ctx, arg)
+	}
+	return result, err
+}
