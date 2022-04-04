@@ -18,6 +18,7 @@ import (
 	"github.com/stretchr/testify/require"
 	mockdb "github.com/uwemakan/simplebank/db/mock"
 	db "github.com/uwemakan/simplebank/db/sqlc"
+	"github.com/uwemakan/simplebank/token"
 	"github.com/uwemakan/simplebank/util"
 )
 
@@ -226,9 +227,9 @@ func TestGetUserAPI(t *testing.T) {
 		checkResponse func(t *testing.T, recorder *httptest.ResponseRecorder)
 	}{
 		{
-			name:          "OK",
-			username:      user.Username,
-			buildStubs:    func(store *mockdb.MockStore) {
+			name:     "OK",
+			username: user.Username,
+			buildStubs: func(store *mockdb.MockStore) {
 				store.EXPECT().
 					GetUser(gomock.Any(), user.Username).
 					Times(1).
@@ -240,9 +241,9 @@ func TestGetUserAPI(t *testing.T) {
 			},
 		},
 		{
-			name:          "BadRequest",
-			username:      user.Username + "@+",
-			buildStubs:    func(store *mockdb.MockStore) {
+			name:     "BadRequest",
+			username: user.Username + "@+",
+			buildStubs: func(store *mockdb.MockStore) {
 				store.EXPECT().
 					GetUser(gomock.Any(), user.Username).
 					Times(0)
@@ -252,9 +253,9 @@ func TestGetUserAPI(t *testing.T) {
 			},
 		},
 		{
-			name:          "NotFound",
-			username:      user.Username,
-			buildStubs:    func(store *mockdb.MockStore) {
+			name:     "NotFound",
+			username: user.Username,
+			buildStubs: func(store *mockdb.MockStore) {
 				store.EXPECT().
 					GetUser(gomock.Any(), user.Username).
 					Times(1).
@@ -265,13 +266,13 @@ func TestGetUserAPI(t *testing.T) {
 			},
 		},
 		{
-			name:          "InternalServerError",
-			username:      user.Username,
-			buildStubs:    func(store *mockdb.MockStore) {
+			name:     "InternalServerError",
+			username: user.Username,
+			buildStubs: func(store *mockdb.MockStore) {
 				store.EXPECT().
 					GetUser(gomock.Any(), user.Username).
 					Times(1).
-					Return(db.User{}, sql.ErrConnDone)
+					Return(user, sql.ErrConnDone)
 			},
 			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusInternalServerError, recorder.Code)
@@ -311,4 +312,147 @@ func requireBodyMatchUser(t *testing.T, body *bytes.Buffer, user db.User) {
 	require.Equal(t, user.Email, gotUser.Email)
 	require.WithinDuration(t, user.PasswordChangedAt, gotUser.PasswordChangedAt, time.Second)
 	require.WithinDuration(t, user.CreatedAt, gotUser.CreatedAt, time.Second)
+}
+
+func TestLoginUserAPI(t *testing.T) {
+	maker, err := token.NewPasetoMaker(tokenSymmetricKey)
+	require.NoError(t, err)
+
+	password := util.RandomString(8)
+	user := randomUser(t, password)
+
+	accessToken, err := maker.CreateToken(user.Username, accessTokenDuration)
+	require.NoError(t, err)
+
+	rsp := loginUserResponse{
+		AccessToken: accessToken,
+		User:        newUserResponse(user),
+	}
+
+	testCases := []struct {
+		name          string
+		body          gin.H
+		buildStubs    func(store *mockdb.MockStore)
+		checkResponse func(t *testing.T, recorder *httptest.ResponseRecorder)
+	}{
+		{
+			name: "OK",
+			body: gin.H{
+				"username": user.Username,
+				"password": password,
+			},
+			buildStubs:    func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetUser(gomock.Any(), gomock.Eq(user.Username)).
+					Times(1).
+					Return(user, nil)
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, recorder.Code)
+				requireBodyMatchLoginResponse(t, recorder.Body, rsp)
+			},
+		},
+		{
+			name: "BadRequest",
+			body: gin.H{
+				"username": user.Username,
+				"password": util.RandomString(3),
+			},
+			buildStubs:    func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetUser(gomock.Any(), gomock.Eq(user.Username)).
+					Times(0)
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusBadRequest, recorder.Code)
+			},
+		},
+		{
+			name: "NotFound",
+			body: gin.H{
+				"username": user.Username,
+				"password": password,
+			},
+			buildStubs:    func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetUser(gomock.Any(), gomock.Eq(user.Username)).
+					Times(1).
+					Return(db.User{}, sql.ErrNoRows)
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusNotFound, recorder.Code)
+			},
+		},
+		{
+			name: "InternalServerError",
+			body: gin.H{
+				"username": user.Username,
+				"password": password,
+			},
+			buildStubs:    func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetUser(gomock.Any(), gomock.Eq(user.Username)).
+					Times(1).
+					Return(db.User{}, sql.ErrConnDone)
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusInternalServerError, recorder.Code)
+			},
+		},
+		{
+			name: "UnAuthorized",
+			body: gin.H{
+				"username": user.Username,
+				"password": util.RandomString(8),
+			},
+			buildStubs:    func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetUser(gomock.Any(), gomock.Eq(user.Username)).
+					Times(1).
+					Return(user, nil)
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusUnauthorized, recorder.Code)
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			ctrl.Finish()
+
+			store := mockdb.NewMockStore(ctrl)
+			tc.buildStubs(store)
+
+			server := newTestServer(t, store)
+			recorder := httptest.NewRecorder()
+
+			url := "/users/login"
+
+			b, err := json.Marshal(tc.body)
+			require.NoError(t, err)
+
+			body := bytes.NewReader(b)
+
+			request, err := http.NewRequest(http.MethodPost, url, body)
+			require.NoError(t, err)
+
+			server.router.ServeHTTP(recorder, request)
+			tc.checkResponse(t, recorder)
+		})
+	}
+}
+
+func requireBodyMatchLoginResponse(t *testing.T, body *bytes.Buffer, rsp loginUserResponse) {
+	data, err := ioutil.ReadAll(body)
+	require.NoError(t, err)
+
+	var response loginUserResponse
+	err = json.Unmarshal(data, &response)
+	require.NoError(t, err)
+	require.Equal(t, rsp.User.Username, response.User.Username)
+	require.Equal(t, rsp.User.Email, response.User.Email)
+	require.WithinDuration(t, rsp.User.PasswordChangedAt, response.User.PasswordChangedAt, time.Second)
+	require.WithinDuration(t, rsp.User.CreatedAt, response.User.CreatedAt, time.Second)
 }
