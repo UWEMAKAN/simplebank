@@ -222,7 +222,7 @@ func TestCreateTransferAPI(t *testing.T) {
 			tc.buildStubs(store)
 
 			// start test server and send request
-			server := NewServer(store)
+			server := newTestServer(t, store)
 			recorder := httptest.NewRecorder()
 
 			url := "/transfers"
@@ -375,7 +375,7 @@ func TestGetTransferAPI(t *testing.T) {
 			tc.buildStubs(store)
 
 			// start test server and send request
-			server := NewServer(store)
+			server := newTestServer(t, store)
 			recorder := httptest.NewRecorder()
 
 			url := fmt.Sprintf("/transfers/%d", tc.transferID)
@@ -572,7 +572,7 @@ func TestListTransfersApI(t *testing.T) {
 			tc.buildStubs(store)
 
 			// start test server and send request
-			server := NewServer(store)
+			server := newTestServer(t, store)
 			recorder := httptest.NewRecorder()
 
 			url := fmt.Sprintf("/transfers?pageId=%d&pageSize=%d&fromAccountId=%d&toAccountId=%d", tc.pageID, tc.pageSize, tc.fromAccountID, tc.toAccountID)
