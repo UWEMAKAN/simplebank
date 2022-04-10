@@ -96,7 +96,7 @@ func (mr *MockStoreMockRecorder) CreateUser(arg0, arg1 interface{}) *gomock.Call
 }
 
 // DeleteAccount mocks base method.
-func (m *MockStore) DeleteAccount(arg0 context.Context, arg1 int64) error {
+func (m *MockStore) DeleteAccount(arg0 context.Context, arg1 db.DeleteAccountParams) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteAccount", arg0, arg1)
 	ret0, _ := ret[0].(error)
@@ -155,7 +155,7 @@ func (mr *MockStoreMockRecorder) GetEntry(arg0, arg1 interface{}) *gomock.Call {
 }
 
 // GetTransfer mocks base method.
-func (m *MockStore) GetTransfer(arg0 context.Context, arg1 int64) (db.Transfer, error) {
+func (m *MockStore) GetTransfer(arg0 context.Context, arg1 db.GetTransferParams) (db.Transfer, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetTransfer", arg0, arg1)
 	ret0, _ := ret[0].(db.Transfer)

@@ -57,6 +57,7 @@ func TestUpdateAccount(t *testing.T) {
 	arg := UpdateAccountParams{
 		ID:      account1.ID,
 		Balance: util.RandomMoney(),
+		Owner: account1.Owner,
 	}
 
 	account2, err := testQueries.UpdateAccount(context.Background(), arg)
@@ -73,7 +74,10 @@ func TestUpdateAccount(t *testing.T) {
 
 func TestDeleteAccount(t *testing.T) {
 	account1 := createRandomAccount(t)
-	err := testQueries.DeleteAccount(context.Background(), account1.ID)
+	err := testQueries.DeleteAccount(context.Background(), DeleteAccountParams{
+		ID: account1.ID,
+		Owner: account1.Owner,
+	})
 	require.NoError(t, err)
 
 	account2, err := testQueries.GetAccount(context.Background(), account1.ID)
@@ -83,20 +87,23 @@ func TestDeleteAccount(t *testing.T) {
 }
 
 func TestListAccounts(t *testing.T) {
+	var lastAccount Account
 	for i := 0; i < 10; i++ {
-		createRandomAccount(t)
+		lastAccount = createRandomAccount(t)
 	}
 
 	arg := ListAccountsParams{
 		Limit: 5,
 		ID:    0,
+		Owner: lastAccount.Owner,
 	}
 
 	accounts, err := testQueries.ListAccounts(context.Background(), arg)
 	require.NoError(t, err)
-	require.Len(t, accounts, 5)
+	require.NotEmpty(t, accounts)
 
 	for _, account := range accounts {
 		require.NotEmpty(t, account)
+		require.Equal(t, lastAccount.Owner, account.Owner)
 	}
 }

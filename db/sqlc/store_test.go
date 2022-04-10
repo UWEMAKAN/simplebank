@@ -28,6 +28,8 @@ func TestTransferTx(t *testing.T) {
 				FromAccountID: account1.ID,
 				ToAccountID:   account2.ID,
 				Amount:        amount,
+				Sender: account1.Owner,
+				Recipient: account2.Owner,
 			})
 			errs <- err
 			results <- result
@@ -54,7 +56,10 @@ func TestTransferTx(t *testing.T) {
 		require.NotZero(t, transfer.ID)
 		require.NotZero(t, transfer.CreatedAt)
 
-		_, err = store.GetTransfer(context.Background(), transfer.ID)
+		_, err = store.GetTransfer(context.Background(), GetTransferParams{
+			ID: transfer.ID,
+			Username: account1.Owner,
+		})
 		require.NoError(t, err)
 
 		// check entries
@@ -126,10 +131,14 @@ func TestTransferTxDeadlock(t *testing.T) {
 	for i := 0; i < n; i++ {
 		fromAccountID := account1.ID
 		toAccountID := account2.ID
+		sender := account1.Owner
+		recipient := account2.Owner
 
 		if i%2 == 1 {
 			fromAccountID = account2.ID
 			toAccountID = account1.ID
+			sender = account2.Owner
+			recipient = account1.Owner
 		}
 
 		go func() {
@@ -137,6 +146,8 @@ func TestTransferTxDeadlock(t *testing.T) {
 				FromAccountID: fromAccountID,
 				ToAccountID:   toAccountID,
 				Amount:        amount,
+				Sender: sender,
+				Recipient: recipient,
 			})
 			errs <- err
 		}()

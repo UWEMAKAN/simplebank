@@ -2,16 +2,18 @@ package api
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	db "github.com/uwemakan/simplebank/db/sqlc"
+	"github.com/uwemakan/simplebank/token"
 )
 
 type transferRequest struct {
-	FromAccounID int64   `json:"fromAccountId" binding:"required,min=1"`
-	ToAccounID   int64   `json:"toAccountId" binding:"required,min=1"`
+	FromAccountID int64   `json:"fromAccountId" binding:"required,min=1"`
+	ToAccountID   int64   `json:"toAccountId" binding:"required,min=1"`
 	Amount       float64 `json:"amount" binding:"required,gt=0"`
 	Currency     string  `json:"currency" binding:"required,currency"`
 }
@@ -23,18 +25,29 @@ func (server *Server) createTransfer(ctx *gin.Context) {
 		return
 	}
 
-	if !server.validAccount(ctx, req.FromAccounID, req.Currency) {
+	fromAccount, valid := server.validAccount(ctx, req.FromAccountID, req.Currency)
+	if !valid {
 		return
 	}
 
-	if !server.validAccount(ctx, req.ToAccounID, req.Currency) {
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+	if fromAccount.Owner != authPayload.Username {
+		err := errors.New("from account doesn't belong to the authenticated user")
+		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
+		return
+	}
+
+	toAccount, valid := server.validAccount(ctx, req.ToAccountID, req.Currency)
+	if !valid {
 		return
 	}
 
 	arg := db.TransferTxParams{
-		FromAccountID: req.FromAccounID,
-		ToAccountID:   req.ToAccounID,
+		FromAccountID: req.FromAccountID,
+		ToAccountID:   req.ToAccountID,
 		Amount:        req.Amount,
+		Sender: fromAccount.Owner,
+		Recipient: toAccount.Owner,
 	}
 
 	result, err := server.store.TransferTx(ctx, arg)
@@ -46,25 +59,25 @@ func (server *Server) createTransfer(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, result)
 }
 
-func (server *Server) validAccount(ctx *gin.Context, accountID int64, currency string) bool {
+func (server *Server) validAccount(ctx *gin.Context, accountID int64, currency string) (db.Account, bool) {
 	account, err := server.store.GetAccount(ctx, accountID)
 
 	if err != nil {
 		if err == sql.ErrNoRows {
 			ctx.JSON(http.StatusNotFound, errorResponse(err))
-			return false
+			return account, false
 		}
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
-		return false
+		return account, false
 	}
 
 	if account.Currency != currency {
 		err = fmt.Errorf("account [%d] currency mismatch: %s vs %s", account.ID, account.Currency, currency)
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
-		return false
+		return account, false
 	}
 
-	return true
+	return account, true
 }
 
 type getTransferRequest struct {
@@ -79,7 +92,13 @@ func (server *Server) getTransfer(ctx *gin.Context) {
 		return
 	}
 
-	result, err := server.store.GetTransfer(ctx, req.ID)
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+	arg := db.GetTransferParams{
+		ID: req.ID,
+		Username: authPayload.Username,
+	}
+
+	result, err := server.store.GetTransfer(ctx, arg)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			ctx.JSON(http.StatusNotFound, errorResponse(err))

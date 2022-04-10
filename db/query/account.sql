@@ -19,13 +19,15 @@ FOR NO KEY UPDATE;
 -- name: ListAccounts :many
 SELECT * FROM accounts
 WHERE id > $1
+AND owner = $2
 ORDER BY id
-LIMIT $2;
+LIMIT $3;
 
 -- name: UpdateAccount :one
 UPDATE accounts
 SET balance = $2
 WHERE id = $1
+AND owner = $3
 RETURNING *;
 
 -- name: UpdateAccountBalance :one
@@ -36,4 +38,5 @@ RETURNING *;
 
 -- name: DeleteAccount :exec
 DELETE FROM accounts
-WHERE id = $1;
+WHERE id = $1
+AND owner = $2;
