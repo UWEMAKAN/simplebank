@@ -321,8 +321,9 @@ func TestLoginUserAPI(t *testing.T) {
 	password := util.RandomString(8)
 	user := randomUser(t, password)
 
-	accessToken, err := maker.CreateToken(user.Username, accessTokenDuration)
+	accessToken, payload, err := maker.CreateToken(user.Username, accessTokenDuration)
 	require.NoError(t, err)
+	require.NotEmpty(t, payload)
 
 	rsp := loginUserResponse{
 		AccessToken: accessToken,
@@ -346,6 +347,9 @@ func TestLoginUserAPI(t *testing.T) {
 					GetUser(gomock.Any(), gomock.Eq(user.Username)).
 					Times(1).
 					Return(user, nil)
+				store.EXPECT().
+					CreateSession(gomock.Any(), gomock.Any()).
+					Times(1)
 			},
 			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusOK, recorder.Code)
