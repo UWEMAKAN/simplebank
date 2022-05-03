@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package pb;
+
+import "user.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/uwemakan/simplebank/pb";
+
+message LoginUserRequest {
+  string username = 1;
+  string password = 2;
+}
+
+message LoginUserResponse {
+  string sessionId = 1;
+	string accessToken = 2;
+	google.protobuf.Timestamp accessTokenExpiresAt = 3;
+	string refreshToken = 4;
+	google.protobuf.Timestamp refreshTokenExpiresAt = 5;
+  User user = 6;
+}
