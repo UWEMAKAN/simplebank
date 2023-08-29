@@ -31,13 +31,14 @@ sqlc:
 	sqlc generate
 
 test:
-	go test -v -cover ./...
+	go test -v -cover -short ./...
 
 server:
 	go run main.go
 
 mock:
 	mockgen -package mockdb --build_flags=--mod=mod -destination db/mock/store.go github.com/uwemakan/simplebank/db/sqlc Store
+	mockgen -package mockwk --build_flags=--mod=mod -destination worker/mock/distributor.go github.com/uwemakan/simplebank/worker TaskDistributor
 
 proto:
 	rm -f pb/*.go
@@ -52,4 +53,13 @@ proto:
 evans:
 	evans --host localhost --port 9090 -r repl
 
-.PHONY: postgres createdb dropdb migrateup migrateup1 migratedown migratedown1 dbDocs dbSchema sqlc test server mock proto evans
+redis:
+	docker run --name simple_bank_redis -p 6379:6379 -d redis:7-alpine
+
+redisPing:
+	docker exec -it simple_bank_redis redis-cli ping
+
+new_migration:
+	migrate create -ext sql -dir db/migration -seq $(name)
+
+.PHONY: postgres createdb dropdb migrateup migrateup1 migratedown migratedown1 dbDocs dbSchema sqlc test server mock proto evans redis redisPing new_migration
