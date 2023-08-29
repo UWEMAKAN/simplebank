@@ -1,7 +1,6 @@
 package api
 
 import (
-	"database/sql"
 	"errors"
 	"fmt"
 	"net/http"
@@ -14,8 +13,8 @@ import (
 type transferRequest struct {
 	FromAccountID int64   `json:"fromAccountId" binding:"required,min=1"`
 	ToAccountID   int64   `json:"toAccountId" binding:"required,min=1"`
-	Amount       float64 `json:"amount" binding:"required,gt=0"`
-	Currency     string  `json:"currency" binding:"required,currency"`
+	Amount        float64 `json:"amount" binding:"required,gt=0"`
+	Currency      string  `json:"currency" binding:"required,currency"`
 }
 
 func (server *Server) createTransfer(ctx *gin.Context) {
@@ -46,8 +45,8 @@ func (server *Server) createTransfer(ctx *gin.Context) {
 		FromAccountID: req.FromAccountID,
 		ToAccountID:   req.ToAccountID,
 		Amount:        req.Amount,
-		Sender: fromAccount.Owner,
-		Recipient: toAccount.Owner,
+		Sender:        fromAccount.Owner,
+		Recipient:     toAccount.Owner,
 	}
 
 	result, err := server.store.TransferTx(ctx, arg)
@@ -63,7 +62,7 @@ func (server *Server) validAccount(ctx *gin.Context, accountID int64, currency s
 	account, err := server.store.GetAccount(ctx, accountID)
 
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if err == db.ErrRecordNotFound {
 			ctx.JSON(http.StatusNotFound, errorResponse(err))
 			return account, false
 		}
@@ -94,13 +93,13 @@ func (server *Server) getTransfer(ctx *gin.Context) {
 
 	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
 	arg := db.GetTransferParams{
-		ID: req.ID,
+		ID:       req.ID,
 		Username: authPayload.Username,
 	}
 
 	result, err := server.store.GetTransfer(ctx, arg)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if err == db.ErrRecordNotFound {
 			ctx.JSON(http.StatusNotFound, errorResponse(err))
 			return
 		}
@@ -129,7 +128,7 @@ func (server *Server) listTransfers(ctx *gin.Context) {
 	result, err := getAllTransfers(ctx, server, req)
 
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if err == db.ErrRecordNotFound {
 			ctx.JSON(http.StatusNotFound, errorResponse(err))
 			return
 		}

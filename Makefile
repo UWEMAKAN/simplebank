@@ -62,4 +62,7 @@ redisPing:
 new_migration:
 	migrate create -ext sql -dir db/migration -seq $(name)
 
-.PHONY: postgres createdb dropdb migrateup migrateup1 migratedown migratedown1 dbDocs dbSchema sqlc test server mock proto evans redis redisPing new_migration
+clearCache:
+	go clean -testcache
+
+.PHONY: postgres createdb dropdb migrateup migrateup1 migratedown migratedown1 dbDocs dbSchema sqlc test server mock proto evans redis redisPing new_migration clearCache

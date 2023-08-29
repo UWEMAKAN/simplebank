@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -14,7 +14,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang/mock/gomock"
-	_ "github.com/lib/pq"
 	"github.com/stretchr/testify/require"
 	mockdb "github.com/uwemakan/simplebank/db/mock"
 	db "github.com/uwemakan/simplebank/db/sqlc"
@@ -259,7 +258,7 @@ func TestGetUserAPI(t *testing.T) {
 				store.EXPECT().
 					GetUser(gomock.Any(), user.Username).
 					Times(1).
-					Return(db.User{}, sql.ErrNoRows)
+					Return(db.User{}, db.ErrRecordNotFound)
 			},
 			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusNotFound, recorder.Code)
@@ -302,7 +301,7 @@ func TestGetUserAPI(t *testing.T) {
 }
 
 func requireBodyMatchUser(t *testing.T, body *bytes.Buffer, user db.User) {
-	data, err := ioutil.ReadAll(body)
+	data, err := io.ReadAll(body)
 	require.NoError(t, err)
 
 	var gotUser db.User
@@ -342,7 +341,7 @@ func TestLoginUserAPI(t *testing.T) {
 				"username": user.Username,
 				"password": password,
 			},
-			buildStubs:    func(store *mockdb.MockStore) {
+			buildStubs: func(store *mockdb.MockStore) {
 				store.EXPECT().
 					GetUser(gomock.Any(), gomock.Eq(user.Username)).
 					Times(1).
@@ -362,7 +361,7 @@ func TestLoginUserAPI(t *testing.T) {
 				"username": user.Username,
 				"password": util.RandomString(3),
 			},
-			buildStubs:    func(store *mockdb.MockStore) {
+			buildStubs: func(store *mockdb.MockStore) {
 				store.EXPECT().
 					GetUser(gomock.Any(), gomock.Eq(user.Username)).
 					Times(0)
@@ -377,11 +376,11 @@ func TestLoginUserAPI(t *testing.T) {
 				"username": user.Username,
 				"password": password,
 			},
-			buildStubs:    func(store *mockdb.MockStore) {
+			buildStubs: func(store *mockdb.MockStore) {
 				store.EXPECT().
 					GetUser(gomock.Any(), gomock.Eq(user.Username)).
 					Times(1).
-					Return(db.User{}, sql.ErrNoRows)
+					Return(db.User{}, db.ErrRecordNotFound)
 			},
 			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusNotFound, recorder.Code)
@@ -393,7 +392,7 @@ func TestLoginUserAPI(t *testing.T) {
 				"username": user.Username,
 				"password": password,
 			},
-			buildStubs:    func(store *mockdb.MockStore) {
+			buildStubs: func(store *mockdb.MockStore) {
 				store.EXPECT().
 					GetUser(gomock.Any(), gomock.Eq(user.Username)).
 					Times(1).
@@ -409,7 +408,7 @@ func TestLoginUserAPI(t *testing.T) {
 				"username": user.Username,
 				"password": util.RandomString(8),
 			},
-			buildStubs:    func(store *mockdb.MockStore) {
+			buildStubs: func(store *mockdb.MockStore) {
 				store.EXPECT().
 					GetUser(gomock.Any(), gomock.Eq(user.Username)).
 					Times(1).
@@ -449,7 +448,7 @@ func TestLoginUserAPI(t *testing.T) {
 }
 
 func requireBodyMatchLoginResponse(t *testing.T, body *bytes.Buffer, rsp loginUserResponse) {
-	data, err := ioutil.ReadAll(body)
+	data, err := io.ReadAll(body)
 	require.NoError(t, err)
 
 	var response loginUserResponse

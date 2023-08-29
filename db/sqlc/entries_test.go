@@ -2,7 +2,6 @@ package db
 
 import (
 	"context"
-	"database/sql"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -16,7 +15,7 @@ func createRandomEntry(t *testing.T) Entry {
 		Amount:    util.RandomMoney(),
 	}
 
-	e, err := testQueries.CreateEntry(context.Background(), arg)
+	e, err := testStore.CreateEntry(context.Background(), arg)
 	require.NoError(t, err)
 	require.NotEmpty(t, e)
 	require.Equal(t, a.ID, e.AccountID)
@@ -34,7 +33,7 @@ func TestCreateEntry(t *testing.T) {
 func TestGetEntry(t *testing.T) {
 	e1 := createRandomEntry(t)
 
-	e2, err := testQueries.GetEntry(context.Background(), e1.ID)
+	e2, err := testStore.GetEntry(context.Background(), e1.ID)
 	require.NoError(t, err)
 	require.NotEmpty(t, e2)
 	require.Equal(t, e1.ID, e2.ID)
@@ -42,9 +41,9 @@ func TestGetEntry(t *testing.T) {
 	require.Equal(t, e1.AccountID, e2.AccountID)
 	require.Equal(t, e1.CreatedAt, e2.CreatedAt)
 
-	e3, err := testQueries.GetEntry(context.Background(), 0)
+	e3, err := testStore.GetEntry(context.Background(), 0)
 	require.Error(t, err)
-	require.EqualError(t, err, sql.ErrNoRows.Error())
+	require.EqualError(t, err, ErrRecordNotFound.Error())
 	require.Empty(t, e3)
 }
 
@@ -57,7 +56,7 @@ func TestListEntries(t *testing.T) {
 		ID:    0,
 		Limit: 5,
 	}
-	es, err := testQueries.ListEntries(context.Background(), arg)
+	es, err := testStore.ListEntries(context.Background(), arg)
 	require.NoError(t, err)
 	require.Len(t, es, 5)
 
@@ -73,7 +72,7 @@ func createAccountEntries(t *testing.T, accountId int64, n int) {
 			Amount:    util.RandomMoney(),
 		}
 
-		e, err := testQueries.CreateEntry(context.Background(), arg)
+		e, err := testStore.CreateEntry(context.Background(), arg)
 		require.NoError(t, err)
 		require.NotEmpty(t, e)
 		require.Equal(t, accountId, e.AccountID)
@@ -93,7 +92,7 @@ func TestListEntriesByAccountId(t *testing.T) {
 		Limit:     5,
 	}
 
-	es, err := testQueries.ListEntriesByAccountId(context.Background(), arg)
+	es, err := testStore.ListEntriesByAccountId(context.Background(), arg)
 	require.NoError(t, err)
 	require.Len(t, es, 5)
 

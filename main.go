@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"database/sql"
+	"embed"
 	"net"
 	"net/http"
 	"os"
@@ -10,9 +10,11 @@ import (
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
+	"github.com/golang-migrate/migrate/v4/source/iofs"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/hibiken/asynq"
-	_ "github.com/lib/pq"
+	_ "github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rakyll/statik/fs"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -29,6 +31,11 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
+var (
+    //go:embed db/migration/*.sql
+    fsD embed.FS
+)
+
 func main() {
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 	config, err := util.LoadConfig(".")
@@ -40,14 +47,14 @@ func main() {
 		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
 	}
 
-	conn, err := sql.Open(config.DBDriver, config.DBSource)
+	connPool, err := pgxpool.New(context.Background(), config.DBSource)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Cannot connect to db")
 	}
 
 	runDBMigration(config.MigrationURL, config.DBSource)
 
-	store := db.NewStore(conn)
+	store := db.NewStore(connPool)
 
 	redisOpt := asynq.RedisClientOpt{
 		Addr: config.RedisAddress,
@@ -61,7 +68,11 @@ func main() {
 }
 
 func runDBMigration(migrationURL string, dbSource string) {
-	migration, err := migrate.New(migrationURL, dbSource)
+	d, err := iofs.New(fsD, migrationURL)
+	if err != nil {
+		log.Fatal().Err(err).Msg("cannot create database driver instance")
+	}
+	migration, err := migrate.NewWithSourceInstance("iofs", d, dbSource)
 	if err != nil {
 		log.Fatal().Err(err).Msg("cannot create new migration instance")
 	}
@@ -162,3 +173,16 @@ func RunGinServer(config util.Config, store db.Store) {
 		log.Fatal().Err(err).Msg("cannot start server")
 	}
 }
+
+// func runDBMigration(migrationURL string, dbSource string) {
+// 	migration, err := migrate.New(migrationURL, dbSource)
+// 	if err != nil {
+// 		log.Fatal().Err(err).Msg("cannot create new migrate instance")
+// 	}
+
+// 	if err = migration.Up(); err != nil && err != migrate.ErrNoChange {
+// 		log.Fatal().Err(err).Msg("failed to run migrate up")
+// 	}
+
+// 	log.Info().Msg("db migrated successfully")
+// }

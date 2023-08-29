@@ -1,12 +1,12 @@
 package api
 
 import (
-	"database/sql"
 	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	db "github.com/uwemakan/simplebank/db/sqlc"
 )
 
 type renewAccessTokenRequest struct {
@@ -14,8 +14,8 @@ type renewAccessTokenRequest struct {
 }
 
 type renewAccessTokenResponse struct {
-	AccessToken           string       `json:"accessToken"`
-	AccessTokenExpiresAt  time.Time    `json:"accessTokenExpiresAt"`
+	AccessToken          string    `json:"accessToken"`
+	AccessTokenExpiresAt time.Time `json:"accessTokenExpiresAt"`
 }
 
 func (server *Server) renewAccessToken(ctx *gin.Context) {
@@ -34,7 +34,7 @@ func (server *Server) renewAccessToken(ctx *gin.Context) {
 
 	session, err := server.store.GetSession(ctx, refreshPayload.ID)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if err == db.ErrRecordNotFound {
 			ctx.JSON(http.StatusNotFound, errorResponse(err))
 			return
 		}
@@ -80,7 +80,7 @@ func (server *Server) renewAccessToken(ctx *gin.Context) {
 	}
 
 	rsp := renewAccessTokenResponse{
-		AccessToken: accessToken,
+		AccessToken:          accessToken,
 		AccessTokenExpiresAt: accessPayload.ExpiredAt,
 	}
 

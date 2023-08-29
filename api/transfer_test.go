@@ -45,7 +45,7 @@ func TestCreateTransferAPI(t *testing.T) {
 			toAccountID:   transferTx.ToAccount.ID,
 			amount:        transferTx.Transfer.Amount,
 			currency:      currency,
-			setupAuth:     func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
 				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, owner, time.Minute)
 			},
 			buildStubs: func(store *mockdb.MockStore) {
@@ -57,8 +57,8 @@ func TestCreateTransferAPI(t *testing.T) {
 							FromAccountID: transferTx.FromAccount.ID,
 							ToAccountID:   transferTx.ToAccount.ID,
 							Amount:        transferTx.Transfer.Amount,
-							Sender: owner,
-							Recipient: recipient,
+							Sender:        owner,
+							Recipient:     recipient,
 						})).
 						Times(1).
 						Return(transferTx, nil),
@@ -75,12 +75,12 @@ func TestCreateTransferAPI(t *testing.T) {
 			toAccountID:   transferTx.ToAccount.ID,
 			amount:        transferTx.Transfer.Amount,
 			currency:      currency,
-			setupAuth:     func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
 				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, owner, time.Minute)
 			},
 			buildStubs: func(store *mockdb.MockStore) {
 				gomock.InOrder(
-					store.EXPECT().GetAccount(gomock.Any(), gomock.Eq(transferTx.FromAccount.ID)).Times(1).Return(db.Account{}, sql.ErrNoRows),
+					store.EXPECT().GetAccount(gomock.Any(), gomock.Eq(transferTx.FromAccount.ID)).Times(1).Return(db.Account{}, db.ErrRecordNotFound),
 				)
 			},
 			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
@@ -93,7 +93,7 @@ func TestCreateTransferAPI(t *testing.T) {
 			toAccountID:   transferTx.ToAccount.ID,
 			amount:        transferTx.Transfer.Amount,
 			currency:      currency,
-			setupAuth:     func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
 				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, owner, time.Minute)
 			},
 			buildStubs: func(store *mockdb.MockStore) {
@@ -111,7 +111,7 @@ func TestCreateTransferAPI(t *testing.T) {
 			toAccountID:   transferTx.ToAccount.ID,
 			amount:        transferTx.Transfer.Amount,
 			currency:      util.USD,
-			setupAuth:     func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
 				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, owner, time.Minute)
 			},
 			buildStubs: func(store *mockdb.MockStore) {
@@ -123,8 +123,8 @@ func TestCreateTransferAPI(t *testing.T) {
 							FromAccountID: transferTx.FromAccount.ID,
 							ToAccountID:   transferTx.ToAccount.ID,
 							Amount:        transferTx.Transfer.Amount,
-							Sender: owner,
-							Recipient: recipient,
+							Sender:        owner,
+							Recipient:     recipient,
 						})).
 						Times(0),
 				)
@@ -139,12 +139,12 @@ func TestCreateTransferAPI(t *testing.T) {
 			toAccountID:   transferTx.ToAccount.ID,
 			amount:        transferTx.Transfer.Amount,
 			currency:      currency,
-			setupAuth:     func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
 				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, owner, time.Minute)
 			},
 			buildStubs: func(store *mockdb.MockStore) {
 				gomock.InOrder(
-					store.EXPECT().GetAccount(gomock.Any(), gomock.Eq(transferTx.FromAccount.ID)).Times(1).Return(db.Account{}, sql.ErrNoRows),
+					store.EXPECT().GetAccount(gomock.Any(), gomock.Eq(transferTx.FromAccount.ID)).Times(1).Return(db.Account{}, db.ErrRecordNotFound),
 				)
 			},
 			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
@@ -157,7 +157,7 @@ func TestCreateTransferAPI(t *testing.T) {
 			toAccountID:   transferTx.ToAccount.ID,
 			amount:        transferTx.Transfer.Amount,
 			currency:      currency,
-			setupAuth:     func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
 				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, owner, time.Minute)
 			},
 			buildStubs: func(store *mockdb.MockStore) {
@@ -175,7 +175,7 @@ func TestCreateTransferAPI(t *testing.T) {
 			toAccountID:   transferTx.ToAccount.ID,
 			amount:        transferTx.Transfer.Amount,
 			currency:      "ABC",
-			setupAuth:     func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
 				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, owner, time.Minute)
 			},
 			buildStubs: func(store *mockdb.MockStore) {
@@ -187,8 +187,8 @@ func TestCreateTransferAPI(t *testing.T) {
 							FromAccountID: transferTx.FromAccount.ID,
 							ToAccountID:   transferTx.ToAccount.ID,
 							Amount:        transferTx.Transfer.Amount,
-							Sender: owner,
-							Recipient: recipient,
+							Sender:        owner,
+							Recipient:     recipient,
 						})).
 						Times(0))
 			},
@@ -202,7 +202,7 @@ func TestCreateTransferAPI(t *testing.T) {
 			toAccountID:   transferTx.ToAccount.ID,
 			amount:        transferTx.Transfer.Amount,
 			currency:      currency,
-			setupAuth:     func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
 				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, owner, time.Minute)
 			},
 			buildStubs: func(store *mockdb.MockStore) {
@@ -214,8 +214,8 @@ func TestCreateTransferAPI(t *testing.T) {
 							FromAccountID: transferTx.FromAccount.ID,
 							ToAccountID:   transferTx.ToAccount.ID,
 							Amount:        transferTx.Transfer.Amount,
-							Sender: owner,
-							Recipient: recipient,
+							Sender:        owner,
+							Recipient:     recipient,
 						})).
 						Times(1).
 						Return(db.TransferTxResult{}, sql.ErrConnDone),
@@ -247,7 +247,7 @@ func TestCreateTransferAPI(t *testing.T) {
 			toAccountID:   transferTx.ToAccount.ID,
 			amount:        transferTx.Transfer.Amount,
 			currency:      currency,
-			setupAuth:     func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
 				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, "owner", time.Minute)
 			},
 			buildStubs: func(store *mockdb.MockStore) {
@@ -265,7 +265,7 @@ func TestCreateTransferAPI(t *testing.T) {
 			toAccountID:   transferTx.ToAccount.ID,
 			amount:        transferTx.Transfer.Amount,
 			currency:      currency,
-			setupAuth:     func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
 				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, owner, time.Minute)
 			},
 			buildStubs: func(store *mockdb.MockStore) {
@@ -278,8 +278,8 @@ func TestCreateTransferAPI(t *testing.T) {
 							FromAccountID: transferTx.FromAccount.ID,
 							ToAccountID:   transferTx.ToAccount.ID,
 							Amount:        transferTx.Transfer.Amount,
-							Sender: owner,
-							Recipient: recipient,
+							Sender:        owner,
+							Recipient:     recipient,
 						})).
 						Times(0),
 				)
@@ -307,8 +307,8 @@ func TestCreateTransferAPI(t *testing.T) {
 			data := transferRequest{
 				FromAccountID: tc.fromAccountID,
 				ToAccountID:   tc.toAccountID,
-				Amount:       tc.amount,
-				Currency:     tc.currency,
+				Amount:        tc.amount,
+				Currency:      tc.currency,
 			}
 
 			b, err := json.Marshal(data)
@@ -389,13 +389,13 @@ func TestGetTransferAPI(t *testing.T) {
 			fromAccountID: transfer.FromAccountID,
 			toAccountID:   transfer.ToAccountID,
 			amount:        transfer.Amount,
-			setupAuth:     func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
 				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, owner, time.Minute)
 			},
 			buildStubs: func(store *mockdb.MockStore) {
 				store.EXPECT().
 					GetTransfer(gomock.Any(), gomock.Eq(db.GetTransferParams{
-						ID: transfer.ID,
+						ID:       transfer.ID,
 						Username: owner,
 					})).
 					Times(1).
@@ -412,13 +412,13 @@ func TestGetTransferAPI(t *testing.T) {
 			fromAccountID: transfer.FromAccountID,
 			toAccountID:   transfer.ToAccountID,
 			amount:        transfer.Amount,
-			setupAuth:     func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
 				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, owner, time.Minute)
 			},
 			buildStubs: func(store *mockdb.MockStore) {
 				store.EXPECT().
 					GetTransfer(gomock.Any(), gomock.Eq(db.GetTransferParams{
-						ID: transfer.ID,
+						ID:       transfer.ID,
 						Username: owner,
 					})).
 					Times(0)
@@ -433,17 +433,17 @@ func TestGetTransferAPI(t *testing.T) {
 			fromAccountID: transfer.FromAccountID,
 			toAccountID:   transfer.ToAccountID,
 			amount:        transfer.Amount,
-			setupAuth:     func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
 				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, owner, time.Minute)
 			},
 			buildStubs: func(store *mockdb.MockStore) {
 				store.EXPECT().
 					GetTransfer(gomock.Any(), gomock.Eq(db.GetTransferParams{
-						ID: transfer.ID,
+						ID:       transfer.ID,
 						Username: owner,
 					})).
 					Times(1).
-					Return(db.Transfer{}, sql.ErrNoRows)
+					Return(db.Transfer{}, db.ErrRecordNotFound)
 			},
 			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusNotFound, recorder.Code)
@@ -455,13 +455,13 @@ func TestGetTransferAPI(t *testing.T) {
 			fromAccountID: transfer.FromAccountID,
 			toAccountID:   transfer.ToAccountID,
 			amount:        transfer.Amount,
-			setupAuth:     func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
 				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, owner, time.Minute)
 			},
 			buildStubs: func(store *mockdb.MockStore) {
 				store.EXPECT().
 					GetTransfer(gomock.Any(), gomock.Eq(db.GetTransferParams{
-						ID: transfer.ID,
+						ID:       transfer.ID,
 						Username: owner,
 					})).
 					Times(1).
@@ -477,8 +477,8 @@ func TestGetTransferAPI(t *testing.T) {
 			fromAccountID: transfer.FromAccountID,
 			toAccountID:   transfer.ToAccountID,
 			amount:        transfer.Amount,
-			setupAuth:     func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
-				
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+
 			},
 			buildStubs: func(store *mockdb.MockStore) {
 				store.EXPECT().
@@ -558,13 +558,13 @@ func TestListTransfersApI(t *testing.T) {
 			pageSize:      int32(pageSize),
 			fromAccountID: 0,
 			toAccountID:   0,
-			setupAuth:     func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
 				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, owner, time.Minute)
 			},
 			buildStubs: func(store *mockdb.MockStore) {
 				store.EXPECT().ListTransfers(gomock.Any(), gomock.Eq(db.ListTransfersParams{
-					ID:    int64(pageID),
-					Limit: int32(pageSize),
+					ID:     int64(pageID),
+					Limit:  int32(pageSize),
 					Sender: owner,
 				})).
 					Times(1).
@@ -581,7 +581,7 @@ func TestListTransfersApI(t *testing.T) {
 			pageSize:      int32(pageSize),
 			fromAccountID: fromAccountID,
 			toAccountID:   0,
-			setupAuth:     func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
 				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, owner, time.Minute)
 			},
 			buildStubs: func(store *mockdb.MockStore) {
@@ -589,7 +589,7 @@ func TestListTransfersApI(t *testing.T) {
 					ID:            int64(pageID),
 					Limit:         int32(pageSize),
 					FromAccountID: fromAccountID,
-					Sender: owner,
+					Sender:        owner,
 				})).
 					Times(1).
 					Return(transfers[:pageSize], nil)
@@ -605,7 +605,7 @@ func TestListTransfersApI(t *testing.T) {
 			pageSize:      int32(pageSize),
 			fromAccountID: 0,
 			toAccountID:   toAccountID,
-			setupAuth:     func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
 				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, owner, time.Minute)
 			},
 			buildStubs: func(store *mockdb.MockStore) {
@@ -613,7 +613,7 @@ func TestListTransfersApI(t *testing.T) {
 					ID:          int64(pageID),
 					Limit:       int32(pageSize),
 					ToAccountID: toAccountID,
-					Sender: owner,
+					Sender:      owner,
 				})).
 					Times(1).
 					Return(transfers[:pageSize], nil)
@@ -629,7 +629,7 @@ func TestListTransfersApI(t *testing.T) {
 			pageSize:      int32(pageSize),
 			fromAccountID: fromAccountID,
 			toAccountID:   toAccountID,
-			setupAuth:     func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
 				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, owner, time.Minute)
 			},
 			buildStubs: func(store *mockdb.MockStore) {
@@ -638,7 +638,7 @@ func TestListTransfersApI(t *testing.T) {
 					Limit:         int32(pageSize),
 					FromAccountID: fromAccountID,
 					ToAccountID:   toAccountID,
-					Sender: owner,
+					Sender:        owner,
 				})).
 					Times(1).
 					Return(transfers[:pageSize], nil)
@@ -654,7 +654,7 @@ func TestListTransfersApI(t *testing.T) {
 			pageSize:      0,
 			fromAccountID: fromAccountID,
 			toAccountID:   toAccountID,
-			setupAuth:     func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
 				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, owner, time.Minute)
 			},
 			buildStubs: func(store *mockdb.MockStore) {
@@ -663,7 +663,7 @@ func TestListTransfersApI(t *testing.T) {
 					Limit:         int32(pageSize),
 					FromAccountID: fromAccountID,
 					ToAccountID:   toAccountID,
-					Sender: owner,
+					Sender:        owner,
 				})).
 					Times(0)
 			},
@@ -677,7 +677,7 @@ func TestListTransfersApI(t *testing.T) {
 			pageSize:      int32(pageSize),
 			fromAccountID: fromAccountID,
 			toAccountID:   toAccountID,
-			setupAuth:     func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
 				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, owner, time.Minute)
 			},
 			buildStubs: func(store *mockdb.MockStore) {
@@ -686,10 +686,10 @@ func TestListTransfersApI(t *testing.T) {
 					Limit:         int32(pageSize),
 					FromAccountID: fromAccountID,
 					ToAccountID:   toAccountID,
-					Sender: owner,
+					Sender:        owner,
 				})).
 					Times(1).
-					Return([]db.Transfer{}, sql.ErrNoRows)
+					Return([]db.Transfer{}, db.ErrRecordNotFound)
 			},
 			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusNotFound, recorder.Code)
@@ -701,7 +701,7 @@ func TestListTransfersApI(t *testing.T) {
 			pageSize:      int32(pageSize),
 			fromAccountID: fromAccountID,
 			toAccountID:   toAccountID,
-			setupAuth:     func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
 				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, owner, time.Minute)
 			},
 			buildStubs: func(store *mockdb.MockStore) {
@@ -710,7 +710,7 @@ func TestListTransfersApI(t *testing.T) {
 					Limit:         int32(pageSize),
 					FromAccountID: fromAccountID,
 					ToAccountID:   toAccountID,
-					Sender: owner,
+					Sender:        owner,
 				})).
 					Times(1).
 					Return([]db.Transfer{}, sql.ErrConnDone)
@@ -732,7 +732,7 @@ func TestListTransfersApI(t *testing.T) {
 					Limit:         int32(pageSize),
 					FromAccountID: fromAccountID,
 					ToAccountID:   toAccountID,
-					Sender: owner,
+					Sender:        owner,
 				})).
 					Times(0)
 			},
