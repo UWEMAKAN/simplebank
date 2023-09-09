@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package pb;
+
+option go_package = "github.com/uwemakan/simplebank/pb";
+
+message VerifyEmailRequest {
+  int64 emailId = 1;
+  string secretCode = 2;
+}
+
+message VerifyEmailResponse {
+  bool isVerified = 1;
+}

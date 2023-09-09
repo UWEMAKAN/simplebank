@@ -16,11 +16,11 @@ func createRandomTransfer(t *testing.T) Transfer {
 		FromAccountID: fromAccount.ID,
 		ToAccountID:   toAccount.ID,
 		Amount:        util.RandomMoney(),
-		Sender: fromAccount.Owner,
-		Recipient: toAccount.Owner,
+		Sender:        fromAccount.Owner,
+		Recipient:     toAccount.Owner,
 	}
 
-	a, err := testQueries.CreateTransfer(context.Background(), arg)
+	a, err := testStore.CreateTransfer(context.Background(), arg)
 	require.NoError(t, err)
 	require.NotZero(t, a.ID)
 	require.NotZero(t, a.CreatedAt)
@@ -38,8 +38,8 @@ func TestCreateTransfer(t *testing.T) {
 func TestGetTransfer(t *testing.T) {
 	t1 := createRandomTransfer(t)
 
-	t2, err := testQueries.GetTransfer(context.Background(), GetTransferParams{
-		ID: t1.ID,
+	t2, err := testStore.GetTransfer(context.Background(), GetTransferParams{
+		ID:       t1.ID,
 		Username: t1.Sender,
 	})
 	require.NoError(t, err)
@@ -59,12 +59,12 @@ func TestListTransfers(t *testing.T) {
 	}
 
 	arg := ListTransfersParams{
-		ID:    0,
-		Limit: 10,
-		Sender : transfer.Sender,
+		ID:     0,
+		Limit:  10,
+		Sender: transfer.Sender,
 	}
 
-	ts, err := testQueries.ListTransfers(context.Background(), arg)
+	ts, err := testStore.ListTransfers(context.Background(), arg)
 	require.NoError(t, err)
 	require.GreaterOrEqual(t, len(ts), 1)
 	for _, st := range ts {
@@ -80,11 +80,11 @@ func createRandomTransfersFromOneAccount(t *testing.T, fromAccountId int64, send
 			FromAccountID: fromAccountId,
 			ToAccountID:   toAccount.ID,
 			Amount:        util.RandomMoney(),
-			Sender: sender,
-			Recipient: toAccount.Owner,
+			Sender:        sender,
+			Recipient:     toAccount.Owner,
 		}
 
-		testQueries.CreateTransfer(context.Background(), arg)
+		testStore.CreateTransfer(context.Background(), arg)
 	}
 }
 
@@ -96,10 +96,10 @@ func TestListTransfersByFromAccount(t *testing.T) {
 		ID:            0,
 		FromAccountID: fromAccount.ID,
 		Limit:         5,
-		Sender: fromAccount.Owner,
+		Sender:        fromAccount.Owner,
 	}
 
-	ts, err := testQueries.ListTransfersByFromAccount(context.Background(), arg)
+	ts, err := testStore.ListTransfersByFromAccount(context.Background(), arg)
 	require.NoError(t, err)
 	require.Len(t, ts, 5)
 
@@ -115,11 +115,11 @@ func createRandomTransfersFromAndToTwoAccounts(t *testing.T, fromAccountId int64
 			FromAccountID: fromAccountId,
 			ToAccountID:   toAccountId,
 			Amount:        util.RandomMoney(),
-			Sender: sender,
-			Recipient: recipient,
+			Sender:        sender,
+			Recipient:     recipient,
 		}
 
-		testQueries.CreateTransfer(context.Background(), arg)
+		testStore.CreateTransfer(context.Background(), arg)
 	}
 }
 
@@ -133,10 +133,10 @@ func TestListTransfersByFromAndToAccount(t *testing.T) {
 		FromAccountID: fromAccount.ID,
 		ToAccountID:   toAccount.ID,
 		Limit:         5,
-		Sender: fromAccount.Owner,
+		Sender:        fromAccount.Owner,
 	}
 
-	ts, err := testQueries.ListTransfersByFromAndToAccount(context.Background(), arg)
+	ts, err := testStore.ListTransfersByFromAndToAccount(context.Background(), arg)
 	require.NoError(t, err)
 	require.Len(t, ts, 5)
 
@@ -154,11 +154,11 @@ func createRandomTransfersToOneAccount(t *testing.T, toAccountId int64, recipien
 			FromAccountID: fromAccount.ID,
 			ToAccountID:   toAccountId,
 			Amount:        util.RandomMoney(),
-			Sender: fromAccount.Owner,
-			Recipient: recipient,
+			Sender:        fromAccount.Owner,
+			Recipient:     recipient,
 		}
 
-		testQueries.CreateTransfer(context.Background(), arg)
+		testStore.CreateTransfer(context.Background(), arg)
 	}
 	return fromAccount
 }
@@ -171,10 +171,10 @@ func TestListTransfersByToAccount(t *testing.T) {
 		ID:          0,
 		ToAccountID: toAccount.ID,
 		Limit:       5,
-		Sender: fromAccount.Owner,
+		Sender:      fromAccount.Owner,
 	}
 
-	ts, err := testQueries.ListTransfersByToAccount(context.Background(), arg)
+	ts, err := testStore.ListTransfersByToAccount(context.Background(), arg)
 	require.NoError(t, err)
 	require.Len(t, ts, 5)
 
