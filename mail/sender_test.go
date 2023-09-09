@@ -1,7 +1,6 @@
 package mail
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -21,7 +20,7 @@ func TestSendEmailWithGmail(t *testing.T) {
 		config.EmailSenderPassword,
 	)
 
-	subject := "A test email"
+	subject := "Subject: A test email"
 	content := `
 		<h1>Hello world</h1>
 		<p>This is a test message from <a href="https://github.com/uwemakan">Uwem Akan</a></p>
@@ -29,6 +28,5 @@ func TestSendEmailWithGmail(t *testing.T) {
 	to := []string{"uwemakan@gmail.com"}
 	attachFiles := []string{"../README.md"}
 	err = sender.SendEmail(subject, content, to, nil, nil, attachFiles)
-	fmt.Println(err)
 	require.NoError(t, err)
 }

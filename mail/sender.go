@@ -61,6 +61,7 @@ func (sender *GmailSender) SendEmail(
 	}
 
 	smtpAuth := smtp.PlainAuth("", sender.fromEmailAddress, sender.fromEmailPassword, smtpAuthAddress)
+	// err := smtp.SendMail(smtpServerAddress, smtpAuth, "uwemakan12@gmail.com", to, []byte(content))
 	err := e.Send(smtpServerAddress, smtpAuth)
 	return err
 }

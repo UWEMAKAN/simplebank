@@ -2,7 +2,9 @@ package gapi
 
 import (
 	"context"
+	"fmt"
 
+	"github.com/bufbuild/protovalidate-go"
 	db "github.com/uwemakan/simplebank/db/sqlc"
 	"github.com/uwemakan/simplebank/pb"
 	"github.com/uwemakan/simplebank/util"
@@ -14,10 +16,21 @@ import (
 )
 
 func (server *Server) LoginUser(ctx context.Context, req *pb.LoginUserRequest) (*pb.LoginUserResponse, error) {
-	violations := validateLoginUserRequest(req)
-	if violations != nil {
-		return nil, invalidArgumentError(violations)
+	// violations := validateLoginUserRequest(req)
+	// if violations != nil {
+	// 	return nil, invalidArgumentError(violations)
+	// }
+
+	v, err := protovalidate.New()
+	if err != nil {
+		fmt.Println("failed to initialize validator:", err)
 	}
+
+	if err = v.Validate(req); err != nil {
+		fmt.Println("validation failed:", err)
+		return nil, status.Errorf(codes.InvalidArgument, "invalid username/password: %s", err)
+	}
+
 	user, err := server.store.GetUser(ctx, req.GetUsername())
 	if err != nil {
 		if err == db.ErrRecordNotFound {
@@ -26,9 +39,9 @@ func (server *Server) LoginUser(ctx context.Context, req *pb.LoginUserRequest) (
 		return nil, status.Errorf(codes.Internal, "user login failed: %s", err)
 	}
 
-	if !user.IsEmailVerified {
-		return nil, status.Errorf(codes.FailedPrecondition, "user account not activated")
-	}
+	// if !user.IsEmailVerified {
+	// 	return nil, status.Errorf(codes.FailedPrecondition, "user account not activated")
+	// }
 
 	err = util.CheckPassword(req.Password, user.HashedPassword)
 	if err != nil {
